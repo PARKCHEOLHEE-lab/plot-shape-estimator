@@ -4,7 +4,7 @@ from shapely.geometry import Polygon
 
 
 @dataclass
-class Plot:
+class PlotData:
     pnu: str
     uaa: str
     geometry: Polygon
