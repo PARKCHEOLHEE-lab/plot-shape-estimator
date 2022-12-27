@@ -46,6 +46,8 @@ def get_list_of_linestring_vertices(input_linestring: List[LineString]) -> List[
 def get_simplified_polygon(input_poly: Polygon) -> Polygon:
     """get simplified polygon"""
     exploded_input_poly = get_exploded_linestring(input_poly.boundary)
+    
+    simplified: List[LineString]
     simplified = [exploded_input_poly[0]]
     
     si = 1
