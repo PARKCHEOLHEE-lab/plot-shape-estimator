@@ -1,4 +1,4 @@
 class Consts:
     """constant collection"""
     TOLERANCE = 0.001
-    SLOPE = 0.1
+    TOLERANCE_SLOPE = 0.1

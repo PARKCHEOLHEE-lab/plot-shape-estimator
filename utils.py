@@ -61,7 +61,7 @@ def get_simplified_polygon(input_poly: Polygon) -> Polygon:
         
         is_last_si = si == len(exploded_input_poly)
         is_needed_merge = (
-            np.isclose(get_linestring_slope(curr_segment), get_linestring_slope(prev_segment), atol=Consts.SLOPE) 
+            np.isclose(get_linestring_slope(curr_segment), get_linestring_slope(prev_segment), atol=Consts.TOLERANCE_SLOPE) 
             and not curr_segment.disjoint(prev_segment)
         )
         
