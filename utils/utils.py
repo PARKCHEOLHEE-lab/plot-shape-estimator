@@ -1,9 +1,9 @@
-import numpy as np
-
-from consts import Consts
-from typing import Union, List, Tuple
+from utils.consts import Consts
+from typing import List, Tuple
 from debugvisualizer.debugvisualizer import Plotter
-from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, Point, MultiPoint
+from shapely.geometry import Polygon, LineString, MultiPoint
+
+import numpy as np
 
 
 
@@ -28,7 +28,7 @@ def get_aspect_ratio(input_poly: Polygon) -> float:
 
 def get_obb_ratio(input_poly: Polygon) -> float:
     """get input polygon's obb ratio"""
-    return input_poly.oriented_envelope.area / input_poly.area
+    return input_poly.area / input_poly.oriented_envelope.area
 
 
 def get_linestring_slope(input_linestring: LineString) -> float:
@@ -45,7 +45,7 @@ def get_list_of_linestring_vertices(input_linestring: List[LineString]) -> List[
 
 def get_simplified_polygon(input_poly: Polygon) -> Polygon:
     """get simplified polygon"""
-    exploded_input_poly = get_exploded_linestring(input_poly.boundary)
+    exploded_input_poly = get_exploded_linestring(input_poly.boundary.simplify(Consts.TOLERANCE))
     
     simplified: List[LineString]
     simplified = [exploded_input_poly[0]]
@@ -59,16 +59,18 @@ def get_simplified_polygon(input_poly: Polygon) -> Polygon:
         curr_segment = exploded_input_poly[si % len(exploded_input_poly)]
         prev_segment = simplified[-1]
         
-        is_last_si = si == len(exploded_input_poly)
         is_needed_merge = (
             np.isclose(get_linestring_slope(curr_segment), get_linestring_slope(prev_segment), atol=Consts.TOLERANCE_SLOPE) 
             and not curr_segment.disjoint(prev_segment)
         )
         
         if is_needed_merge:
+            is_last_si = si == len(exploded_input_poly)
+            
             curr_segment = simplified[0] if is_last_si else curr_segment
             if is_last_si:
                 del simplified[0]
+                
             simplified[-1] = LineString([prev_segment.coords[0], curr_segment.coords[-1]])
             
         else:
@@ -79,14 +81,11 @@ def get_simplified_polygon(input_poly: Polygon) -> Polygon:
     return Polygon(get_list_of_linestring_vertices(simplified))
 
 
-# def get_longest_segment(input_poly: Polygon) -> LineString:
-#     """get input polygon's longest segment"""
-#     return sorted(get_exploded_linestring(input_poly.boundary), key=lambda s: s.length, reverse=True)[0]
+def get_longest_segment(input_poly: Polygon) -> LineString:
+    """get input polygon's longest segment"""
+    return sorted(get_exploded_linestring(input_poly.boundary), key=lambda s: s.length, reverse=True)[0]
 
 
-# def get_plot_filled_ratio():
-#     return
-
-
-# def get_axis_aligned_bounding_box(input_poly: Union[MultiPolygon, Polygon]):
-#     return
+def get_interior_angle_sum(input_poly: Polygon) -> float:
+    """sum of input polygon's interior angles"""
+    return 0

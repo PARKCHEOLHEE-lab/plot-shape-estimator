@@ -1,7 +1,7 @@
-
-import numpy as np
 from typing import List, Tuple, Union, Iterable
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, Point, MultiPoint
+
+import numpy as np
 
 
 
@@ -71,15 +71,15 @@ class Plotter:
 
 
 
-# if __name__ == "__main__":
-#     polygon = Polygon([[0,0], [2,0], [2,2], [0,2], [0,0]])
-#     polygon2 = Polygon([[1,1], [2,1], [2,2], [1,2], [1,1]])
-#     polygon3 = Polygon([[3,3], [3,5], [5,5], [5,3], [3,3]])
-#     multipolygon = MultiPolygon([polygon, polygon3])
+if __name__ == "__main__":
+    polygon = Polygon([[0,0], [2,0], [2,2], [0,2], [0,0]])
+    polygon2 = Polygon([[1,1], [2,1], [2,2], [1,2], [1,1]])
+    polygon3 = Polygon([[3,3], [3,5], [5,5], [5,3], [3,3]])
+    multipolygon = MultiPolygon([polygon, polygon3])
 
-#     l1 = LineString([[0,0], [1,1]])
-#     l2 = LineString([[2,2], [3,3]])
-#     multilinestring = MultiLineString([l1, l2])
+    l1 = LineString([[0,0], [1,1]])
+    l2 = LineString([[2,2], [3,3]])
+    multilinestring = MultiLineString([l1, l2])
 
-#     p1 = Point(2,2)
-#     ep = Point()
+    p1 = Point(2,2)
+    ep = Point()

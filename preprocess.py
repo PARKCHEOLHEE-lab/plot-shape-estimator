@@ -1,17 +1,14 @@
-import shapely
-import geopandas
-
 from enum import Enum
 from debugvisualizer.debugvisualizer import Plotter
 from data.data import PlotData
 from shapely.geometry import Polygon
 
-from consts import Consts
+import geopandas
 
 
 
 class Uaa(Enum):
-    """land usage"""
+    """plot usage"""
     Plot = 8
     Road = 11
 
@@ -44,7 +41,7 @@ class PlotDataPreprocessor:
             curr_pnu = raw_data.loc[ri].PNU
             next_pnu = raw_data.loc[(ri + 1) % rows].PNU
             prev_pnu = raw_data.loc[(ri - 1) % rows].PNU
-            geometry  = raw_data.loc[ri].geometry.simplify(Consts.TOLERANCE)
+            geometry  = raw_data.loc[ri].geometry
 
             is_needed_idx_add = False
             if int(uaa) != Uaa.Plot.value:
@@ -80,3 +77,4 @@ class PlotDataPreprocessor:
 if __name__ == "__main__":
     preprocessed_plots_data = PlotDataPreprocessor(geopandas.read_file("data/sample-plots.geojson"))
     pd = preprocessed_plots_data.preprocessed_plots_data
+    pass  # break point
