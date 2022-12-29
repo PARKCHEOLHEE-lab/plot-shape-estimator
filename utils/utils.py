@@ -7,14 +7,16 @@ from shapely.geometry import Polygon, LineString, MultiPoint
 import shapely
 import numpy as np
 
+np.seterr(all='raise')
 
 
 class ShapeLabel(Enum):
-    """geometry shape label"""
-    SquareShape = auto()
+    """geometry's shape label"""
+    SquareShape = 0
     LongSquareShape = auto()
     FlagShape = auto()
     TriangleShape = auto()
+    TrapezoidShape = auto()
     IndeterminateShape = auto()
 
 
@@ -46,7 +48,9 @@ def get_linestring_slope(input_linestring: LineString) -> float:
     """get input liestring's slope"""
     x1, x2 = np.array(input_linestring.coords)[:, 0]
     y1, y2 = np.array(input_linestring.coords)[:, 1]
-    return (y2 - y1) / (x2 - x1)
+    
+    slope = 0 if np.isclose(x2 - x1, 0) else (y2 - y1) / (x2 - x1) 
+    return slope
 
 
 def get_list_of_linestring_vertices(input_linestring: List[LineString]) -> List[Tuple[float]]:
@@ -96,6 +100,9 @@ def get_simplified_polygon(input_poly: Polygon) -> Polygon:
             simplified.append(curr_segment)
         
         si += 1
+        
+    if not shapely.ops.linemerge(simplified).is_simple:
+        raise Exception("'simplified' is self-intersecting geometry")
     
     return Polygon(get_list_of_linestring_vertices(simplified))
 
@@ -137,6 +144,25 @@ def get_interior_angle_sum(input_poly: Polygon) -> float:
     return angle_sum
 
 
-def get_estimated_shape_label(input_poly: Polygon, obb_ratio: float, aspect_ratio: float) -> int:
+def get_estimated_shape_label(input_poly: Polygon, obb_ratio: float, aspect_ratio: float, interior_angle_sum: float) -> int:
     """get estimated input polygon's shape label"""
-    return ShapeLabel.SquareShape.value
+    is_satisfied_rectangle_obb_ratio = obb_ratio >= Consts.RECTANGLE_OBB_RATIO_BASELINE
+    is_rectangle = np.isclose(interior_angle_sum, Consts.RECTANGLE_ANGLE_SUM) and is_satisfied_rectangle_obb_ratio
+    is_lte_aspect_ratio_baseline = aspect_ratio <= Consts.LONG_SQUARE_SHAPE_ASPECT_RATIO_BASELINE
+    
+    is_flag = False
+    flag_checker = input_poly.convex_hull - input_poly
+    if isinstance(flag_checker, Polygon) and not flag_checker.is_empty:
+        is_flag = (
+            np.isclose(get_interior_angle_sum(flag_checker), Consts.TRIANGLE_ANGE_SUM) 
+            and obb_ratio <= Consts.FLAG_OBB_RATIO_BASELINE
+        )
+    
+    shape_label = ShapeLabel.IndeterminateShape.value
+    if is_rectangle or is_satisfied_rectangle_obb_ratio and not is_rectangle:
+        shape_label = ShapeLabel.SquareShape.value if is_lte_aspect_ratio_baseline else ShapeLabel.LongSquareShape.value
+    
+    elif is_flag:
+        shape_label = ShapeLabel.FlagShape.value
+    
+    return shape_label

@@ -2,3 +2,11 @@ class Consts:
     """constant collection"""
     TOLERANCE = 0.001
     TOLERANCE_SLOPE = 0.1
+    
+    TRIANGLE_ANGE_SUM = 180
+    RECTANGLE_ANGLE_SUM = 360
+    
+    FLAG_OBB_RATIO_BASELINE = 0.6
+    RECTANGLE_OBB_RATIO_BASELINE = 0.9
+    
+    LONG_SQUARE_SHAPE_ASPECT_RATIO_BASELINE = 1.3
