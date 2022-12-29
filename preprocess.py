@@ -1,6 +1,6 @@
 from enum import Enum
 from debugvisualizer.debugvisualizer import Plotter
-from data.data import PlotData
+from data.plot_data import PlotData
 from shapely.geometry import Polygon
 
 import geopandas
