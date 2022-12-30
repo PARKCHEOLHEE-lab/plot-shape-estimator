@@ -3,8 +3,16 @@ from debugvisualizer.debugvisualizer import Plotter
 from data.plot_data import PlotData
 from shapely.geometry import Polygon
 
+from geojsplit import geojsplit
 import geopandas
+import json
+import math
+import os
 
+
+
+DATA_PATH = "data"
+SPLITTED_DATA_PATH = os.path.join(DATA_PATH, "splitted_data")
 
 
 class Uaa(Enum):
@@ -71,10 +79,34 @@ class PlotDataPreprocessor:
         area_baseline_max = 400
         
         return plot.area <= area_baseline_min or plot.area >= area_baseline_max
+    
+    @staticmethod
+    def split_geojson(geojson_dict, batch=5000):
+        """geojson splitter"""
+        features = geojson_dict["features"]
+        split_count = math.ceil(len(features) / batch)
+
+        for b in range(split_count):
+            
+            splitted_dict = {
+            "type": "FeatureCollection",
+            "name": f"gangnam-plots-{b}",
+            "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5174" } },
+            "features": features[b * batch : (b+1) * batch]
+            }
+            
+            save_path = os.path.join(f"{SPLITTED_DATA_PATH}", splitted_dict["name"] + ".geojson")
+            with open(save_path, "w", encoding="UTF-8") as f:
+                json.dump(splitted_dict, f)
+
+
         
-
-
 if __name__ == "__main__":
-    preprocessed_plots_data = PlotDataPreprocessor(geopandas.read_file("data/sample-plots.geojson"))
-    pd = preprocessed_plots_data.preprocessed_plots_data
-    pass  # break point
+    
+    # with open(f"{DATA_PATH}/gangnam-plots-all.geojson", "r", encoding="UTF-8") as f:
+    #     PlotDataPreprocessor.split_geojson(json.load(f))
+    
+    for geojson in os.listdir(SPLITTED_DATA_PATH):
+        geojson_path = os.path.join(SPLITTED_DATA_PATH, geojson)
+        preprocessed_plots_data = PlotDataPreprocessor(geopandas.read_file(geojson_path))
+        pass  # break point

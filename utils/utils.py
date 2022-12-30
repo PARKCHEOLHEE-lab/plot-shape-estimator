@@ -2,7 +2,7 @@ from enum import Enum, auto
 from typing import List, Tuple
 from utils.consts import Consts
 from debugvisualizer.debugvisualizer import Plotter
-from shapely.geometry import Polygon, LineString, MultiPoint
+from shapely.geometry import Polygon, MultiPolygon, LineString, MultiPoint
 
 import shapely
 import numpy as np
@@ -17,7 +17,7 @@ class ShapeLabel(Enum):
     FlagShape = auto()
     TriangleShape = auto()
     TrapezoidShape = auto()
-    IndeterminateShape = auto()
+    UndefinedShape = auto()
 
 
 def get_exploded_linestring(input_linestring: LineString) -> List[LineString]:
@@ -154,15 +154,27 @@ def get_estimated_shape_label(input_poly: Polygon, obb_ratio: float, aspect_rati
     flag_checker = input_poly.convex_hull - input_poly
     if isinstance(flag_checker, Polygon) and not flag_checker.is_empty:
         is_flag = (
-            np.isclose(get_interior_angle_sum(flag_checker), Consts.TRIANGLE_ANGE_SUM) 
+            np.isclose(get_interior_angle_sum(flag_checker), Consts.TRIANGLE_ANGLE_SUM) 
             and obb_ratio <= Consts.FLAG_OBB_RATIO_BASELINE
         )
+        
+    is_trapezoid = False
+    trapezoid_checker = (input_poly.oriented_envelope - input_poly - input_poly.convex_hull).buffer(-Consts.TRAPEZOID_CHECKER_EROSION)
+    if isinstance(trapezoid_checker, MultiPolygon):
+        is_trapezoid = (
+            len(trapezoid_checker.geoms) >= Consts.TRAPEZOID_CHECKER_TRIANGLE_COUNT
+            and obb_ratio >= Consts.TRAPEZOID_OBB_RATIO_BASELINE
+        )
     
-    shape_label = ShapeLabel.IndeterminateShape.value
+    shape_label = ShapeLabel.UndefinedShape.value
+    
     if is_rectangle or is_satisfied_rectangle_obb_ratio and not is_rectangle:
         shape_label = ShapeLabel.SquareShape.value if is_lte_aspect_ratio_baseline else ShapeLabel.LongSquareShape.value
     
     elif is_flag:
         shape_label = ShapeLabel.FlagShape.value
+        
+    elif is_trapezoid:
+        shape_label = ShapeLabel.TrapezoidShape.value
     
     return shape_label
