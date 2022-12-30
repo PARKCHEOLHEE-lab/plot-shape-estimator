@@ -7,7 +7,6 @@ from shapely.geometry import Polygon, MultiPolygon, LineString, MultiPoint
 import shapely
 import numpy as np
 
-np.seterr(all='raise')
 
 
 class ShapeLabel(Enum):
