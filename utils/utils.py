@@ -147,7 +147,9 @@ def get_estimated_shape_label(input_poly: Polygon, obb_ratio: float, aspect_rati
     """get estimated input polygon's shape label"""
     is_satisfied_rectangle_obb_ratio = obb_ratio >= Consts.RECTANGLE_OBB_RATIO_BASELINE
     is_rectangle = np.isclose(interior_angle_sum, Consts.RECTANGLE_ANGLE_SUM) and is_satisfied_rectangle_obb_ratio
-    is_lte_aspect_ratio_baseline = aspect_ratio <= Consts.LONG_SQUARE_SHAPE_ASPECT_RATIO_BASELINE
+    is_lte_long_square_aspect_ratio_baseline = aspect_ratio <= Consts.LONG_SQUARE_SHAPE_ASPECT_RATIO_BASELINE
+    
+    is_triangle = np.isclose(get_interior_angle_sum(input_poly), Consts.TRIANGLE_ANGLE_SUM)
     
     is_flag = False
     flag_checker = input_poly.convex_hull - input_poly
@@ -158,22 +160,30 @@ def get_estimated_shape_label(input_poly: Polygon, obb_ratio: float, aspect_rati
         )
         
     is_trapezoid = False
-    trapezoid_checker = (input_poly.oriented_envelope - input_poly - input_poly.convex_hull).buffer(-Consts.TRAPEZOID_CHECKER_EROSION)
+    trapezoid_checker = (
+        input_poly.oriented_envelope - input_poly - input_poly.convex_hull
+    ).buffer(-Consts.TRAPEZOID_CHECKER_EROSION)
+    
     if isinstance(trapezoid_checker, MultiPolygon):
         is_trapezoid = (
-            len(trapezoid_checker.geoms) >= Consts.TRAPEZOID_CHECKER_TRIANGLE_COUNT
+            (len(trapezoid_checker.geoms) >= Consts.TRAPEZOID_CHECKER_TRIANGLE_COUNT)
             and obb_ratio >= Consts.TRAPEZOID_OBB_RATIO_BASELINE
         )
+    elif isinstance(trapezoid_checker, Polygon):
+        is_trapezoid = obb_ratio >= Consts.TRAPEZOID_OBB_RATIO_BASELINE
     
     shape_label = ShapeLabel.UndefinedShape.value
     
     if is_rectangle or is_satisfied_rectangle_obb_ratio and not is_rectangle:
-        shape_label = ShapeLabel.SquareShape.value if is_lte_aspect_ratio_baseline else ShapeLabel.LongSquareShape.value
+        shape_label = ShapeLabel.SquareShape.value if is_lte_long_square_aspect_ratio_baseline else ShapeLabel.LongSquareShape.value
     
     elif is_flag:
         shape_label = ShapeLabel.FlagShape.value
         
     elif is_trapezoid:
         shape_label = ShapeLabel.TrapezoidShape.value
+        
+    else:
+        a=1
     
     return shape_label
