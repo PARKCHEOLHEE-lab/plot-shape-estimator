@@ -1,9 +1,9 @@
 from enum import Enum
 from debugvisualizer.debugvisualizer import Plotter
 from data.plot_data import PlotData
-from shapely.geometry import Polygon
+from utils.consts import Consts
+from shapely.geometry import Polygon, MultiPolygon
 
-from geojsplit import geojsplit
 import geopandas
 import json
 import math
@@ -62,11 +62,14 @@ class PlotDataPreprocessor:
                 continue
             
             self.__merged_plot = geometry if self.__merged_plot.is_empty else self.__merged_plot
-            if self.__is_satisfied_area_baseline(self.__merged_plot):
+            if (
+                self.__is_satisfied_area_baseline(self.__merged_plot) 
+                or isinstance(self.__merged_plot.simplify(Consts.TOLERANCE), MultiPolygon)
+            ):
                 self.__reset_merged_plot()
                 is_needed_idx_add = True
                 continue
-
+            
             self.preprocessed_plots_data.append(
                 PlotData(plot_geometry=self.__merged_plot)
             )
