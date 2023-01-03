@@ -37,3 +37,10 @@ class PlotData:
             self.plot_aspect_ratio, 
             self.plot_interior_angle_sum
         )
+        
+        self.all_plot_data = [
+            self.plot_aspect_ratio,
+            self.plot_obb_ratio,
+            self.plot_interior_angle_sum,
+            self.plot_label,
+        ]
