@@ -4,6 +4,11 @@ from data.plot_data import PlotData
 from utils.consts import Consts
 from shapely.geometry import Polygon, MultiPolygon
 
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+
 import geopandas
 import json
 import math
