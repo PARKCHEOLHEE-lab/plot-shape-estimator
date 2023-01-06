@@ -43,4 +43,5 @@ class PlotData:
             self.plot_obb_ratio,
             self.plot_interior_angle_sum,
             self.plot_label,
+            self.plot_geometry.wkt
         ]

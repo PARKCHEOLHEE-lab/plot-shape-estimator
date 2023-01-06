@@ -17,7 +17,7 @@ class ShapeLabel(Enum):
     TriangleShape = auto()
     TrapezoidShape = auto()
     UndefinedShape = auto()
-
+    
 
 def get_exploded_linestring(input_linestring: LineString) -> List[LineString]:
     """merged LineString to list of LineString"""
