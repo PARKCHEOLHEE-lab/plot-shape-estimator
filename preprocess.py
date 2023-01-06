@@ -2,12 +2,8 @@ from enum import Enum
 from debugvisualizer.debugvisualizer import Plotter
 from data.plot_data import PlotData
 from utils.consts import Consts
+from utils.utils import ShapeLabel
 from shapely.geometry import Polygon, MultiPolygon
-
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
 
 import geopandas
 import json
@@ -21,6 +17,8 @@ DATA_PATH = "data"
 SPLITTED_DATA_PATH = os.path.join(DATA_PATH, "splitted_data")
 PREPROCESSED_DATA_PATH = os.path.join(DATA_PATH, "preprocessed_data")
 
+SHAPE_LABELS = [shape_label.name for shape_label in ShapeLabel]
+
 
 class Uaa(Enum):
     """plot usage"""
@@ -33,7 +31,6 @@ class PlotDataPreprocessor:
 
     def __init__(self, plots_data: geopandas.GeoDataFrame, gi: int) -> None:
         self.__plots_data = plots_data.sort_values("PNU").reset_index(drop=True)
-        self.__gi = gi
         self.__reset_merged_plot()
         self.__gen_preprocessed_data()
 
@@ -42,21 +39,8 @@ class PlotDataPreprocessor:
         self.__merged_plot = Polygon()
         
     def __save_data_to_csv(self, plot_data: PlotData) -> None:
-        
-        if not os.path.exists(os.path.join(PREPROCESSED_DATA_PATH, f"preprocessed_plots-{self.__gi}.csv")):
-            f = open(os.path.join(PREPROCESSED_DATA_PATH, f"preprocessed_plots-{self.__gi}.csv"), 'w', newline="")
-            writer = csv.writer(f)
-            writer.writerow(
-                [
-                    "plot_aspect_ratio",
-                    "plot_obb_ratio",
-                    "plot_interior_angle_sum",
-                    "plot_label"
-                ]
-            )
-            f.close()
-        
-        with open(os.path.join(PREPROCESSED_DATA_PATH, f"preprocessed_plots-{self.__gi}.csv"), "a", newline="") as f:
+        """save object data to csv"""
+        with open(os.path.join(PREPROCESSED_DATA_PATH, SHAPE_LABELS[plot_data.plot_label] + ".csv"), "a", newline="") as f:
             writer = csv.writer(f)
             row = plot_data.all_plot_data
             writer.writerow(row)
@@ -140,6 +124,24 @@ if __name__ == "__main__":
     
     # with open(os.path.join(DATA_PATH, "gangnam-plots-all.geojson"), "r", encoding="UTF-8") as f:
     #     PlotDataPreprocessor.split_geojson(json.load(f))
+        
+    for shape_label in SHAPE_LABELS:
+        save_path = os.path.join(PREPROCESSED_DATA_PATH, shape_label + ".csv")
+        
+        if not os.path.exists(save_path):
+            f = open(save_path, 'w', newline="")
+            writer = csv.writer(f)
+            writer.writerow(
+                [
+                    "plot_aspect_ratio",
+                    "plot_obb_ratio",
+                    "plot_interior_angle_sum",
+                    "plot_label",
+                    "plot_geometry_wkt"
+                ]
+            )
+    
+            f.close()
     
     for gi, geojson in enumerate(os.listdir(SPLITTED_DATA_PATH)):
         geojson_path = os.path.join(SPLITTED_DATA_PATH, geojson)
