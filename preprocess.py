@@ -3,21 +3,26 @@ from debugvisualizer.debugvisualizer import Plotter
 from data.plot_data import PlotData
 from utils.consts import Consts
 from utils.utils import ShapeLabel
-from shapely.geometry import Polygon, MultiPolygon
 
+from shapely.geometry import Polygon, MultiPolygon
+from shapely import wkt
+
+import io
 import pandas
 import geopandas
 import json
 import math
 import os
 import csv
+import matplotlib.pyplot as plt
+from PIL import Image
 
 
 
 DATA_PATH = "data"
 SPLITTED_DATA_PATH = os.path.join(DATA_PATH, "splitted_data")
 PREPROCESSED_DATA_PATH = os.path.join(DATA_PATH, "preprocessed_data")
-
+PREPROCESSED_DATA_MAX_ROW = 1000
 SHAPE_LABELS = [shape_label.name for shape_label in ShapeLabel]
 
 
@@ -30,8 +35,8 @@ class Uaa(Enum):
 class PlotDataPreprocessor:
     """raw plot data preprocessor"""
 
-    def __init__(self, plots_data: geopandas.GeoDataFrame, gi: int) -> None:
-        self.__plots_data = plots_data.sort_values("PNU").reset_index(drop=True)
+    def __init__(self, plots_data: geopandas.GeoDataFrame) -> None:
+        self.__plots_data = plots_data.sort_values("UEC").reset_index(drop=True)
         self.__reset_merged_plot()
         self.__gen_preprocessed_data()
 
@@ -43,8 +48,12 @@ class PlotDataPreprocessor:
         """save object data to csv"""
         
         csv_path = os.path.join(PREPROCESSED_DATA_PATH, SHAPE_LABELS[plot_data.plot_label] + ".csv")
-        row_length, _ = pandas.read_csv(csv_path).shape
-        if row_length < 400:
+        csv_to_df = pandas.read_csv(csv_path)
+        csv_to_df.drop_duplicates(subset=None, inplace=True)
+        csv_to_df.to_csv(csv_path, index=False)
+        
+        row_length, _ = csv_to_df.shape
+        if row_length < PREPROCESSED_DATA_MAX_ROW:
             with open(csv_path, "a", newline="") as f:
                 writer = csv.writer(f)
                 row = plot_data.all_plot_data
@@ -58,45 +67,54 @@ class PlotDataPreprocessor:
 
         ri = 0
         is_needed_idx_add = False
-        while ri < rows - 1:
-            print(ri)
-            
-            if is_needed_idx_add:
-                ri += 1
+        while ri < rows - 1:            
+            try:
+                if is_needed_idx_add:
+                    ri += 1
 
-            uaa = raw_data.loc[ri].UAA
-            curr_pnu = raw_data.loc[ri].PNU
-            next_pnu = raw_data.loc[(ri + 1) % rows].PNU
-            prev_pnu = raw_data.loc[(ri - 1) % rows].PNU
-            geometry  = raw_data.loc[ri].geometry
-
-            is_needed_idx_add = False
-            if int(uaa) != Uaa.Plot.value:
-                is_needed_idx_add = True
-                continue
-            
-            if curr_pnu in (prev_pnu, next_pnu):
-                self.__merged_plot = self.__merged_plot.union(geometry)
-                is_needed_idx_add = True
-                continue
-            
-            self.__merged_plot = geometry if self.__merged_plot.is_empty else self.__merged_plot
+                uaa = raw_data.loc[ri].UAA
+                if uaa is None:
+                    is_needed_idx_add = True
+                    continue
                 
-            if (
-                self.__is_satisfied_area_baseline(self.__merged_plot) 
-                or isinstance(self.__merged_plot.simplify(Consts.TOLERANCE), MultiPolygon)
-            ):
+                curr_pnu = raw_data.loc[ri].PNU
+                next_pnu = raw_data.loc[(ri + 1) % rows].PNU
+                prev_pnu = raw_data.loc[(ri - 1) % rows].PNU
+                geometry  = raw_data.loc[ri].geometry
+
+                is_needed_idx_add = False
+                if int(uaa) != Uaa.Plot.value:
+                    is_needed_idx_add = True
+                    continue
+                
+                if curr_pnu in (prev_pnu, next_pnu):
+                    self.__merged_plot = self.__merged_plot.union(geometry)
+                    is_needed_idx_add = True
+                    continue
+                
+                self.__merged_plot = geometry if self.__merged_plot.is_empty else self.__merged_plot
+                    
+                if (
+                    self.__is_satisfied_area_baseline(self.__merged_plot) 
+                    or isinstance(self.__merged_plot.simplify(Consts.TOLERANCE), MultiPolygon)
+                ):
+                    self.__reset_merged_plot()
+                    is_needed_idx_add = True
+                    continue
+                
+                plot_data = PlotData(plot_geometry=self.__merged_plot)
+                print(ri, "label:", SHAPE_LABELS[plot_data.plot_label])
+
+                self.preprocessed_plots_data.append(plot_data)
+                self.__save_data_to_csv(plot_data)
+                
                 self.__reset_merged_plot()
                 is_needed_idx_add = True
-                continue
             
-            plot_data = PlotData(plot_geometry=self.__merged_plot)
-
-            self.preprocessed_plots_data.append(plot_data)
-            self.__save_data_to_csv(plot_data)
-            
-            self.__reset_merged_plot()
-            is_needed_idx_add = True
+            except Exception as e:
+                self.__reset_merged_plot()
+                is_needed_idx_add = True
+                print("index:", ri, e)
             
     def __is_satisfied_area_baseline(self, plot: Polygon) -> bool:
         area_baseline_min = 100
@@ -123,37 +141,106 @@ class PlotDataPreprocessor:
             with open(save_path, "w", encoding="UTF-8") as f:
                 json.dump(splitted_dict, f)
 
+    @staticmethod
+    def merge_plot_image(preprocessed_data_path: str):
+        """save image from preprocessed plot data"""
+        shape_label = preprocessed_data_path.split(".")[0].split("\\")[-1]
+        save_path = os.path.join(DATA_PATH, "QA", shape_label + ".png")
+        if os.path.exists(save_path):
+            return
+
+        def fig_to_img(figure):
+            """Convert a Matplotlib figure to a PIL Image and return it"""
+            buf = io.BytesIO()
+            figure.savefig(buf)
+            buf.seek(0)
+            image = Image.open(buf)
+
+            return image
+        
+        preprocessed_data_df = pandas.read_csv(preprocessed_data_path)
+        preprocessed_data_geometries = preprocessed_data_df.plot_geometry_wkt
+        
+        dpi = 100
+        figsize = (3, 3)
+        col_num = 25
+        row_num = 40
+        img_size = figsize[0] * dpi
+        merged_image = Image.new("RGB", (col_num * img_size, row_num * img_size), "white")
+        
+        current_cols = 0
+        output_height = 0
+        output_width = 0
+        color = "black"
+        
+        for pi, plot_geometry_wkt in enumerate(preprocessed_data_geometries):
+            print(pi)
+
+            figure = plt.figure(figsize=figsize, dpi=dpi)
+            
+            ax = figure.add_subplot(1, 1, 1)
+            ax.axis("equal")
+            ax.set_axis_off()
+            
+            plot_geometry = wkt.loads(plot_geometry_wkt)
+            ax.plot(*plot_geometry.boundary.coords.xy, color=color, linewidth=0.6)
+            ax.fill(*plot_geometry.boundary.coords.xy, alpha=0.2, color=color)
+            plt.gcf().text(
+                0.5,
+                0.1,
+                f"index: {pi}",
+                va="center",
+                ha="center",
+                color="black",
+                fontsize=7,
+                )
+            
+            image = fig_to_img(figure)
+
+            merged_image.paste(image, (output_width, output_height))
+
+            current_cols += 1
+            if current_cols >= col_num:
+                output_width = 0
+                output_height += img_size
+                current_cols = 0
+            else:
+                output_width += img_size            
+            
+            plt.close(figure)
+
+        merged_image.save(save_path)
 
         
 if __name__ == "__main__":
-    
-    # with open(os.path.join(DATA_PATH, "gangnam-plots-all.geojson"), "r", encoding="UTF-8") as f:
-    #     PlotDataPreprocessor.split_geojson(json.load(f))
         
-    for shape_label in SHAPE_LABELS:
-        save_path = os.path.join(PREPROCESSED_DATA_PATH, shape_label + ".csv")
+    """make csv for saving preprocessed data"""
+    # for shape_label in SHAPE_LABELS:
+    #     save_path = os.path.join(PREPROCESSED_DATA_PATH, shape_label + ".csv")
         
-        if not os.path.exists(save_path):
-            f = open(save_path, 'w', newline="")
-            writer = csv.writer(f)
-            writer.writerow(
-                [
-                    "plot_aspect_ratio",
-                    "plot_obb_ratio",
-                    "plot_interior_angle_sum",
-                    "plot_label",
-                    "plot_geometry_wkt",
-                    "is_rectangle",
-                    "is_flag",
-                    "is_trapezoid",
-                    "is_triangle"
-                ]
-            )
+    #     if not os.path.exists(save_path):
+    #         f = open(save_path, 'w', newline="")
+    #         writer = csv.writer(f)
+    #         writer.writerow(
+    #             [
+    #                 "plot_aspect_ratio",
+    #                 "plot_obb_ratio",
+    #                 "plot_interior_angle_sum",
+    #                 "plot_label",
+    #                 "plot_geometry_wkt",
+    #                 "is_rectangle",
+    #                 "is_flag",
+    #                 "is_trapezoid",
+    #                 "is_triangle"
+    #             ]
+    #         )
     
-            f.close()
+    #         f.close()
     
-    for gi, geojson in enumerate(os.listdir(SPLITTED_DATA_PATH)):
-        geojson_path = os.path.join(SPLITTED_DATA_PATH, geojson)
-        preprocessed_plots_data = PlotDataPreprocessor(geopandas.read_file(geojson_path), gi)
-        print(f"--------- done {gi} ---------")
-        pass  # break point
+    """preprocessing"""
+    # preprocessed_plots_data = PlotDataPreprocessor(geopandas.read_file("data/gangnam-plots-all.geojson"))
+
+    """preprocessed data QA"""
+    for preprocessed_data in os.listdir(PREPROCESSED_DATA_PATH):
+        preprocessed_data_path = os.path.join(PREPROCESSED_DATA_PATH, preprocessed_data)
+        PlotDataPreprocessor.merge_plot_image(preprocessed_data_path)
