@@ -194,4 +194,4 @@ def get_estimated_shape_label(input_poly: Polygon, obb_ratio: float, aspect_rati
     elif is_triangle:
         shape_label = ShapeLabel.TriangleShape.value
     
-    return shape_label
+    return shape_label, int(is_rectangle), int(is_flag), int(is_trapezoid), int(is_triangle)

@@ -5,6 +5,7 @@ from utils.consts import Consts
 from utils.utils import ShapeLabel
 from shapely.geometry import Polygon, MultiPolygon
 
+import pandas
 import geopandas
 import json
 import math
@@ -40,10 +41,14 @@ class PlotDataPreprocessor:
         
     def __save_data_to_csv(self, plot_data: PlotData) -> None:
         """save object data to csv"""
-        with open(os.path.join(PREPROCESSED_DATA_PATH, SHAPE_LABELS[plot_data.plot_label] + ".csv"), "a", newline="") as f:
-            writer = csv.writer(f)
-            row = plot_data.all_plot_data
-            writer.writerow(row)
+        
+        csv_path = os.path.join(PREPROCESSED_DATA_PATH, SHAPE_LABELS[plot_data.plot_label] + ".csv")
+        row_length, _ = pandas.read_csv(csv_path).shape
+        if row_length < 400:
+            with open(csv_path, "a", newline="") as f:
+                writer = csv.writer(f)
+                row = plot_data.all_plot_data
+                writer.writerow(row)
             
     def __gen_preprocessed_data(self) -> None:
         """main func"""
@@ -137,7 +142,11 @@ if __name__ == "__main__":
                     "plot_obb_ratio",
                     "plot_interior_angle_sum",
                     "plot_label",
-                    "plot_geometry_wkt"
+                    "plot_geometry_wkt",
+                    "is_rectangle",
+                    "is_flag",
+                    "is_trapezoid",
+                    "is_triangle"
                 ]
             )
     
