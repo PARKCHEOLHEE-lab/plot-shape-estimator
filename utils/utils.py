@@ -3,8 +3,10 @@ from typing import List, Tuple
 from utils.consts import Consts
 from debugvisualizer.debugvisualizer import Plotter
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiPoint, JOIN_STYLE
+from shapely import ops
 
 import shapely
+import pandas
 import numpy as np
 
 
@@ -100,7 +102,7 @@ def get_simplified_polygon(input_poly: Polygon) -> Polygon:
         
         si += 1
         
-    if not shapely.ops.linemerge(simplified).is_simple:
+    if not ops.linemerge(simplified).is_simple:
         raise Exception("'simplified' is self-intersecting geometry")
     
     return Polygon(get_list_of_linestring_vertices(simplified))
@@ -195,3 +197,21 @@ def get_estimated_shape_label(input_poly: Polygon, obb_ratio: float, aspect_rati
         shape_label = ShapeLabel.TriangleShape.value
     
     return shape_label, int(is_rectangle), int(is_flag), int(is_trapezoid), int(is_triangle)
+
+
+def get_data_and_label():
+    square_shape_df = pandas.read_csv('data/end_data/SquareShape.csv')[:500]
+    long_square_shape_df = pandas.read_csv('data/end_data/LongSquareShape.csv')[:500]
+    flag_shape_df = pandas.read_csv('data/end_data/FlagShape.csv')[:500]
+    triangle_shape_df = pandas.read_csv('data/end_data/TriangleShape.csv')[:500]
+    trapezoid_shape_df = pandas.read_csv('data/end_data/TrapezoidShape.csv')[:500]
+    
+    columns = ["is_rectangle", "is_flag", "is_trapezoid", "is_triangle", "plot_aspect_ratio", "plot_obb_ratio", "plot_interior_angle_sum", "plot_label"]
+    
+    square_df = square_shape_df[columns]
+    long_square_df = long_square_shape_df[columns]
+    flag_df = flag_shape_df[columns]
+    triangle_df = triangle_shape_df[columns]
+    trapezoid_df = trapezoid_shape_df[columns]
+
+    return pandas.concat([square_df, long_square_df, flag_df, triangle_df, trapezoid_df], ignore_index=True)

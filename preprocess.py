@@ -247,21 +247,20 @@ if __name__ == "__main__":
     #     PlotDataPreprocessor.merge_plot_image(preprocessed_data_path)
     
     """make end data"""
-    
-    with open("data/QA/_InvalidShapes.yaml", 'r') as f:
-        invalid_shapes_yamal = yaml.safe_load(f)
-        for shape_key in invalid_shapes_yamal["invalid_indices"].keys():
+    # with open("data/QA/_InvalidShapes.yaml", 'r') as f:
+    #     invalid_shapes_yamal = yaml.safe_load(f)
+    #     for shape_key in invalid_shapes_yamal["invalid_indices"].keys():
 
-            plots_df = pandas.read_csv(os.path.join(PREPROCESSED_DATA_PATH, shape_key + ".csv"))
-            plots_df["index"] = range(plots_df.shape[0])
+    #         plots_df = pandas.read_csv(os.path.join(PREPROCESSED_DATA_PATH, shape_key + ".csv"))
+    #         plots_df["index"] = range(plots_df.shape[0])
 
-            invalid_indices = sorted(invalid_shapes_yamal["invalid_indices"][shape_key])
-            valid_plots_df = plots_df[~plots_df["index"].isin(invalid_indices)]
+    #         invalid_indices = sorted(invalid_shapes_yamal["invalid_indices"][shape_key])
+    #         valid_plots_df = plots_df[~plots_df["index"].isin(invalid_indices)]
             
-            csv_save_path = os.path.join(END_DATA_PATH, shape_key + ".csv")
-            if os.path.exists(csv_save_path):
-                continue
+    #         csv_save_path = os.path.join(END_DATA_PATH, shape_key + ".csv")
+    #         if os.path.exists(csv_save_path):
+    #             continue
             
-            valid_plots_df.to_csv(csv_save_path, index=False)
-            PlotDataPreprocessor.merge_plot_image(csv_save_path, path=os.path.join(END_DATA_PATH, shape_key + ".png"))
+    #         valid_plots_df.to_csv(csv_save_path, index=False)
+    #         PlotDataPreprocessor.merge_plot_image(csv_save_path, path=os.path.join(END_DATA_PATH, shape_key + ".png"))
             
