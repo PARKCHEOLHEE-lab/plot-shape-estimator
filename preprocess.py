@@ -15,6 +15,7 @@ import math
 import os
 import csv
 import matplotlib.pyplot as plt
+import yaml
 from PIL import Image
 
 
@@ -22,6 +23,7 @@ from PIL import Image
 DATA_PATH = "data"
 SPLITTED_DATA_PATH = os.path.join(DATA_PATH, "splitted_data")
 PREPROCESSED_DATA_PATH = os.path.join(DATA_PATH, "preprocessed_data")
+END_DATA_PATH = os.path.join(DATA_PATH, "end_data")
 PREPROCESSED_DATA_MAX_ROW = 1000
 SHAPE_LABELS = [shape_label.name for shape_label in ShapeLabel]
 
@@ -142,10 +144,10 @@ class PlotDataPreprocessor:
                 json.dump(splitted_dict, f)
 
     @staticmethod
-    def merge_plot_image(preprocessed_data_path: str):
+    def merge_plot_image(preprocessed_data_path: str, path: str = None):
         """save image from preprocessed plot data"""
         shape_label = preprocessed_data_path.split(".")[0].split("\\")[-1]
-        save_path = os.path.join(DATA_PATH, "QA", shape_label + ".png")
+        save_path = os.path.join(DATA_PATH, "QA", shape_label + ".png") if path is None else path
         if os.path.exists(save_path):
             return
 
@@ -217,7 +219,6 @@ if __name__ == "__main__":
     """make csv for saving preprocessed data"""
     # for shape_label in SHAPE_LABELS:
     #     save_path = os.path.join(PREPROCESSED_DATA_PATH, shape_label + ".csv")
-        
     #     if not os.path.exists(save_path):
     #         f = open(save_path, 'w', newline="")
     #         writer = csv.writer(f)
@@ -241,6 +242,26 @@ if __name__ == "__main__":
     # preprocessed_plots_data = PlotDataPreprocessor(geopandas.read_file("data/gangnam-plots-all.geojson"))
 
     """preprocessed data QA"""
-    for preprocessed_data in os.listdir(PREPROCESSED_DATA_PATH):
-        preprocessed_data_path = os.path.join(PREPROCESSED_DATA_PATH, preprocessed_data)
-        PlotDataPreprocessor.merge_plot_image(preprocessed_data_path)
+    # for preprocessed_data in os.listdir(PREPROCESSED_DATA_PATH):
+    #     preprocessed_data_path = os.path.join(PREPROCESSED_DATA_PATH, preprocessed_data)
+    #     PlotDataPreprocessor.merge_plot_image(preprocessed_data_path)
+    
+    """make end data"""
+    
+    with open("data/QA/_InvalidShapes.yaml", 'r') as f:
+        invalid_shapes_yamal = yaml.safe_load(f)
+        for shape_key in invalid_shapes_yamal["invalid_indices"].keys():
+
+            plots_df = pandas.read_csv(os.path.join(PREPROCESSED_DATA_PATH, shape_key + ".csv"))
+            plots_df["index"] = range(plots_df.shape[0])
+
+            invalid_indices = sorted(invalid_shapes_yamal["invalid_indices"][shape_key])
+            valid_plots_df = plots_df[~plots_df["index"].isin(invalid_indices)]
+            
+            csv_save_path = os.path.join(END_DATA_PATH, shape_key + ".csv")
+            if os.path.exists(csv_save_path):
+                continue
+            
+            valid_plots_df.to_csv(csv_save_path, index=False)
+            PlotDataPreprocessor.merge_plot_image(csv_save_path, path=os.path.join(END_DATA_PATH, shape_key + ".png"))
+            
