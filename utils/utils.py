@@ -50,7 +50,7 @@ def get_linestring_slope(input_linestring: LineString) -> float:
     x1, x2 = np.array(input_linestring.coords)[:, 0]
     y1, y2 = np.array(input_linestring.coords)[:, 1]
     
-    slope = 0 if np.isclose(x2 - x1, 0) else (y2 - y1) / (x2 - x1) 
+    slope = np.inf if np.isclose(x2 - x1, 0) else (y2 - y1) / (x2 - x1) 
     return slope
 
 
