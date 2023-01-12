@@ -122,9 +122,13 @@ if __name__ == "__main__":
     # rotated flag
     result = plot_shape_estimator.estimate(
         PlotData(
-            scale(
-                shapely.ops.unary_union([Polygon([[0,0], [0,5], [5,5], [5,0]]), Polygon([[0,5], [-5,5], [-5,4], [0,4]])]),
-                xfact=2,
+            rotate(
+                scale(
+                    shapely.ops.unary_union(
+                        [Polygon([[0,0], [0,5], [5,5], [5,0]]), Polygon([[0,5], [-5,5], [-5,4], [0,4]])]
+                    ),
+                    xfact=2
+                ), 5
             )
         )
     )
