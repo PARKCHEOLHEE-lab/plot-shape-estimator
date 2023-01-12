@@ -200,6 +200,7 @@ def get_estimated_shape_label(input_poly: Polygon, obb_ratio: float, aspect_rati
 
 
 def get_data_and_label():
+    """for training"""
     square_shape_df = pandas.read_csv('data/end_data/SquareShape.csv')[:500]
     long_square_shape_df = pandas.read_csv('data/end_data/LongSquareShape.csv')[:500]
     flag_shape_df = pandas.read_csv('data/end_data/FlagShape.csv')[:500]
@@ -215,3 +216,18 @@ def get_data_and_label():
     trapezoid_df = trapezoid_shape_df[columns]
 
     return pandas.concat([square_df, long_square_df, flag_df, triangle_df, trapezoid_df], ignore_index=True)
+
+
+def get_cutted_mass(plot_geometry: Polygon, shape_label: str) -> Polygon:
+    """only for long-square shape current"""
+    
+    # for test
+    if shape_label == ShapeLabel.LongSquareShape.name:
+        mass = plot_geometry.buffer(-0.1)
+        mass_longest_segment = get_longest_segment(mass)
+        mass_cutting_vector = np.array(mass_longest_segment.coords)[1] - np.array(mass_longest_segment.coords)[0]
+        
+        moved_mass = shapely.affinity.translate(mass, *mass_cutting_vector * 0.3)
+        cutted_mass = moved_mass.intersection(mass)
+        
+        return cutted_mass

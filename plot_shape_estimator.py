@@ -1,7 +1,7 @@
 from debugvisualizer.debugvisualizer import Plotter
 from shapely.geometry import Polygon
 from data.plot_data import PlotData
-from utils.utils import ShapeLabel
+from utils.utils import ShapeLabel, get_cutted_mass
 
 from shapely.affinity import rotate, scale
 import shapely
@@ -90,6 +90,7 @@ if __name__ == "__main__":
         )
     )
     print(f"predicted: {result}, expected: LongSquaredShape")
+    get_cutted_mass(Polygon([[0,0], [2,3], [1.5,4], [0,1.5]]), result)
     
 
     # triangle
